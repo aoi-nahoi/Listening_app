@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}復習 - {{ question.question_text[:30] }}...{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/review.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 復習ヘッダー -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-2">
+                                <i class="fas fa-redo me-2"></i>問題を復習
+                            </h2>
+                            <p class="mb-0 fs-5">音声を聞いて、正しい答えを選びましょう！</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="display-4 text-white">
+                                <i class="fas fa-headphones"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 復習問題 -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>問題
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 音声プレーヤー -->
+                    <div class="audio-player-container mb-4">
+                        <h6 class="mb-3">音声を聞いてください</h6>
+                        <audio id="audioPlayer" controls class="w-100">
+                            <source src="{{ question.audio_url }}" type="audio/mpeg">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                        <div class="mt-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="playAudio()">
+                                <i class="fas fa-play me-1"></i>再生
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="pauseAudio()">
+                                <i class="fas fa-pause me-1"></i>一時停止
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="restartAudio()">
+                                <i class="fas fa-redo me-1"></i>最初から
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 問題文 -->
+                    <div class="question-text mb-4">
+                        <h6 class="mb-3">問題文</h6>
+                        <div class="p-3 bg-light rounded">
+                            <p class="mb-0 fs-5">{{ question.question_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- 選択肢 -->
+                    <div class="answer-options">
+                        <h6 class="mb-3">正しい答えを選んでください</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="answer-option" data-option="A" onclick="selectAnswer('A')">
+                                    <div class="d-flex align-items-center">
+                                        <div class="option-letter me-3">A</div>
+                                        <div class="option-text">{{ question.option_a or '選択肢A' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="answer-option" data-option="B" onclick="selectAnswer('B')">
+                                    <div class="d-flex align-items-center">
+                                        <div class="option-letter me-3">B</div>
+                                        <div class="option-text">{{ question.option_b or '選択肢B' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="answer-option" data-option="C" onclick="selectAnswer('C')">
+                                    <div class="d-flex align-items-center">
+                                        <div class="option-letter me-3">C</div>
+                                        <div class="option-text">{{ question.option_c or '選択肢C' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="answer-option" data-option="D" onclick="selectAnswer('D')">
+                                    <div class="d-flex align-items-center">
+                                        <div class="option-letter me-3">D</div>
+                                        <div class="option-text">{{ question.option_d or '選択肢D' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 回答ボタン -->
+                    <div class="text-center mt-4">
+                        <button id="submitAnswer" class="btn btn-primary btn-lg" onclick="submitAnswer()" disabled>
+                            <i class="fas fa-check me-2"></i>回答を確定
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側: 復習情報 -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>復習情報
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>間違えた回数:</strong>
+                        <span class="badge bg-danger ms-2">{{ wrong_count }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>前回のスコア:</strong>
+                        <span class="badge bg-warning ms-2">{{ last_score }}点</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>難易度:</strong>
+                        <span class="badge bg-info ms-2">レベル{{ question.difficulty_level or 1 }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>復習回数:</strong>
+                        <span class="badge bg-secondary ms-2">{{ review_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学習のヒント -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>学習のヒント
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            音声を何度も聞いて、内容を理解しましょう
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            選択肢をよく読んで、文脈に合うものを選びましょう
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            間違えた場合は、なぜ間違えたかを考えましょう
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果表示エリア -->
+    <div id="resultArea" class="row mt-4" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>結果
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContent">
+                        <!-- 結果がここに表示される -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 復習完了モーダル -->
+<div class="modal fade" id="reviewCompleteModal" tabindex="-1" aria-labelledby="reviewCompleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewCompleteModalLabel">復習完了</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewCompleteContent">
+                    <!-- 復習完了の内容がここに表示される -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('review') }}" class="btn btn-primary">復習一覧に戻る</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedAnswer = null;
+let isAnswered = false;
+
+function selectAnswer(option) {
+    if (isAnswered) return;
+    
+    // 既存の選択をクリア
+    document.querySelectorAll('.answer-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    // 新しい選択を設定
+    document.querySelector(`[data-option="${option}"]`).classList.add('selected');
+    selectedAnswer = option;
+    
+    // 回答ボタンを有効化
+    document.getElementById('submitAnswer').disabled = false;
+}
+
+function submitAnswer() {
+    if (!selectedAnswer || isAnswered) return;
+    
+    isAnswered = true;
+    
+    // 回答ボタンを無効化
+    document.getElementById('submitAnswer').disabled = true;
+    
+    // 結果を表示
+    showResult();
+}
+
+function showResult() {
+    const isCorrect = selectedAnswer === '{{ question.correct_answer }}';
+    const resultArea = document.getElementById('resultArea');
+    const resultContent = document.getElementById('resultContent');
+    
+    let resultHtml = '';
+    
+    if (isCorrect) {
+        resultHtml = `
+            <div class="text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success fa-3x"></i>
+                </div>
+                <h4 class="text-success mb-3">正解です！</h4>
+                <p class="mb-3">素晴らしい！この問題は理解できています。</p>
+                <div class="alert alert-success">
+                    <strong>正解:</strong> ${selectedAnswer}. {{ question.correct_answer }}
+                </div>
+            </div>
+        `;
+    } else {
+        resultHtml = `
+            <div class="text-center">
+                <div class="mb-3">
+                    <i class="fas fa-times-circle text-danger fa-3x"></i>
+                </div>
+                <h4 class="text-danger mb-3">不正解です</h4>
+                <p class="mb-3">間違えた場合は、なぜ間違えたかを考えましょう。</p>
+                <div class="alert alert-danger">
+                    <strong>あなたの回答:</strong> ${selectedAnswer}
+                </div>
+                <div class="alert alert-success">
+                    <strong>正解:</strong> {{ question.correct_answer }}
+                </div>
+            </div>
+        `;
+    }
+    
+    resultContent.innerHTML = resultHtml;
+    resultArea.style.display = 'block';
+    
+    // 結果をサーバーに送信
+    saveReviewResult(isCorrect);
+    
+    // 少し待ってから復習完了モーダルを表示
+    setTimeout(() => {
+        showReviewCompleteModal(isCorrect);
+    }, 2000);
+}
+
+async function saveReviewResult(isCorrect) {
+    try {
+        const response = await fetch('/api/review/save-result', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question_id: {{ question.id }},
+                user_answer: selectedAnswer,
+                is_correct: isCorrect,
+                time_spent: 0 // 実際の実装では学習時間を計測
+            })
+        });
+        
+        if (response.ok) {
+            console.log('復習結果を保存しました');
+        }
+    } catch (error) {
+        console.error('復習結果の保存に失敗しました:', error);
+    }
+}
+
+function showReviewCompleteModal(isCorrect) {
+    const modal = document.getElementById('reviewCompleteModal');
+    const content = document.getElementById('reviewCompleteContent');
+    
+    if (isCorrect) {
+        content.innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-trophy text-warning fa-3x mb-3"></i>
+                <h5 class="text-success">復習完了！</h5>
+                <p>この問題は正しく理解できています。継続して学習を続けましょう！</p>
+            </div>
+        `;
+    } else {
+        content.innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-redo text-warning fa-3x mb-3"></i>
+                <h5 class="text-warning">復習完了</h5>
+                <p>間違えた問題は、また後で復習しましょう。繰り返し学習することで理解が深まります。</p>
+            </div>
+        `;
+    }
+    
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+// 音声プレーヤーの制御
+function playAudio() {
+    document.getElementById('audioPlayer').play();
+}
+
+function pauseAudio() {
+    document.getElementById('audioPlayer').pause();
+}
+
+function restartAudio() {
+    const audio = document.getElementById('audioPlayer');
+    audio.currentTime = 0;
+    audio.play();
+}
+</script>
+{% endblock %}

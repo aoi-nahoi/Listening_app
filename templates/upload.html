@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}音声アップロード - 英語リスニングアプリ{% endblock %}
+
+{% block content %}
+<!-- ページヘッダー -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <i class="fas fa-upload me-2"></i>音声アップロード
+            </h2>
+            <a href="{{ url_for('questions') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>問題一覧に戻る
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- アップロードフォーム -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-microphone me-2"></i>音声ファイルをアップロード
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <!-- ファイル選択 -->
+                    <div class="mb-4">
+                        <label for="audioFile" class="form-label">
+                            <i class="fas fa-file-audio me-2"></i>音声ファイル
+                        </label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <div class="file-upload-content text-center">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                <h5>音声ファイルを選択またはドラッグ&ドロップ</h5>
+                                <p class="text-muted">MP3, WAV, M4A形式に対応（最大10MB）</p>
+                                <input type="file" 
+                                       class="form-control" 
+                                       id="audioFile" 
+                                       name="audio_file" 
+                                       accept="audio/*" 
+                                       required 
+                                       style="display: none;">
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('audioFile').click()">
+                                    <i class="fas fa-folder-open me-2"></i>ファイルを選択
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 選択されたファイル情報 -->
+                        <div id="fileInfo" class="mt-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-music me-2"></i>
+                                    <div class="flex-grow-1">
+                                        <strong id="fileName"></strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            サイズ: <span id="fileSize"></span> | 
+                                            形式: <span id="fileType"></span>
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 基本設定 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="difficulty" class="form-label">
+                                <i class="fas fa-signal me-2"></i>難易度
+                            </label>
+                            <select class="form-select" id="difficulty" name="difficulty" required>
+                                <option value="">難易度を選択</option>
+                                <option value="easy">初級</option>
+                                <option value="medium">中級</option>
+                                <option value="hard">上級</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">
+                                <i class="fas fa-tags me-2"></i>カテゴリ
+                            </label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">カテゴリを選択</option>
+                                <option value="conversation">会話</option>
+                                <option value="news">ニュース</option>
+                                <option value="story">物語</option>
+                                <option value="academic">学術</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 公開設定 -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-globe me-2"></i>公開設定
+                        </label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_public" id="publicYes" value="true" checked>
+                            <label class="form-check-label" for="publicYes">
+                                <i class="fas fa-users me-1"></i>他のユーザーに公開する
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_public" id="publicNo" value="false">
+                            <label class="form-check-label" for="publicNo">
+                                <i class="fas fa-user me-1"></i>自分だけが使用する
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- カスタム問題文（オプション） -->
+                    <div class="mb-4">
+                        <label for="customQuestion" class="form-label">
+                            <i class="fas fa-edit me-2"></i>カスタム問題文（オプション）
+                        </label>
+                        <textarea class="form-control" 
+                                  id="customQuestion" 
+                                  name="custom_question" 
+                                  rows="3" 
+                                  placeholder="自動生成される問題文をカスタマイズしたい場合は入力してください。空欄の場合は自動生成されます。"></textarea>
+                        <div class="form-text">空欄の場合は、AIが音声内容を分析して自動的に問題を生成します。</div>
+                    </div>
+                    
+                    <!-- アップロードボタン -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg" id="uploadBtn" disabled>
+                            <i class="fas fa-upload me-2"></i>音声をアップロードして問題を生成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右側: プレビューと情報 -->
+    <div class="col-lg-4">
+        <!-- アップロードの流れ -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>アップロードの流れ
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="upload-steps">
+                    <div class="step-item mb-3">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <strong>音声ファイル選択</strong>
+                            <p class="mb-0 small text-muted">MP3、WAV、M4A形式の音声ファイルを選択</p>
+                        </div>
+                    </div>
+                    <div class="step-item mb-3">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <strong>AI音声解析</strong>
+                            <p class="mb-0 small text-muted">Google Cloud Speech-to-Textで文字起こし</p>
+                        </div>
+                    </div>
+                    <div class="step-item mb-3">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <strong>問題自動生成</strong>
+                            <p class="mb-0 small text-muted">AIが内容を分析して穴埋め問題を生成</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <strong>学習開始</strong>
+                            <p class="mb-0 small text-muted">生成された問題でリスニング学習</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 問題生成プレビュー -->
+        <div class="card shadow" id="previewCard" style="display: none;">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>問題生成プレビュー
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="previewContent">
+                    <!-- プレビュー内容がここに表示されます -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- アップロードのヒント -->
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>アップロードのヒント
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        クリアな音声を使用
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        適切な長さ（1-5分程度）
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        英語の発音が明確
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        適切な難易度を設定
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- アップロード進行状況モーダル -->
+<div class="modal fade" id="uploadProgressModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog fa-spin me-2"></i>音声処理中...
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         id="uploadProgress" 
+                         style="width: 0%"></div>
+                </div>
+                
+                <div class="upload-status">
+                    <div class="status-item" id="status1">
+                        <i class="fas fa-upload text-primary me-2"></i>
+                        <span>ファイルをアップロード中...</span>
+                    </div>
+                    <div class="status-item" id="status2" style="display: none;">
+                        <i class="fas fa-microphone text-info me-2"></i>
+                        <span>音声を解析中...</span>
+                    </div>
+                    <div class="status-item" id="status3" style="display: none;">
+                        <i class="fas fa-brain text-warning me-2"></i>
+                        <span>問題を生成中...</span>
+                    </div>
+                    <div class="status-item" id="status4" style="display: none;">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <span>完了！</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// グローバル変数
+let uploadProgress = 0;
+let uploadModal;
+
+// ページ読み込み時の初期化
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+    setupDragAndDrop();
+});
+
+// イベントリスナーの設定
+function setupEventListeners() {
+    // ファイル選択
+    document.getElementById('audioFile').addEventListener('change', handleFileSelect);
+    
+    // フォーム送信
+    document.getElementById('uploadForm').addEventListener('submit', handleFormSubmit);
+    
+    // 難易度・カテゴリ変更時のプレビュー更新
+    document.getElementById('difficulty').addEventListener('change', updatePreview);
+    document.getElementById('category').addEventListener('change', updatePreview);
+    document.getElementById('customQuestion').addEventListener('input', updatePreview);
+}
+
+// ドラッグ&ドロップの設定
+function setupDragAndDrop() {
+    const dropArea = document.getElementById('fileUploadArea');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight(e) {
+        dropArea.classList.add('drag-over');
+    }
+    
+    function unhighlight(e) {
+        dropArea.classList.remove('drag-over');
+    }
+    
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            document.getElementById('audioFile').files = files;
+            handleFileSelect();
+        }
+    }
+}
+
+// ファイル選択処理
+function handleFileSelect() {
+    const fileInput = document.getElementById('audioFile');
+    const file = fileInput.files[0];
+    
+    if (file) {
+        // ファイル情報を表示
+        showFileInfo(file);
+        
+        // アップロードボタンを有効化
+        document.getElementById('uploadBtn').disabled = false;
+        
+        // プレビューを更新
+        updatePreview();
+    }
+}
+
+// ファイル情報表示
+function showFileInfo(file) {
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileType = document.getElementById('fileType');
+    
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileType.textContent = file.type || '不明';
+    
+    fileInfo.style.display = 'block';
+}
+
+// ファイル削除
+function removeFile() {
+    document.getElementById('audioFile').value = '';
+    document.getElementById('fileInfo').style.display = 'none';
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('previewCard').style.display = 'none';
+}
+
+// ファイルサイズのフォーマット
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// プレビュー更新
+function updatePreview() {
+    const difficulty = document.getElementById('difficulty').value;
+    const category = document.getElementById('category').value;
+    const customQuestion = document.getElementById('customQuestion').value;
+    
+    if (difficulty && category) {
+        const previewCard = document.getElementById('previewCard');
+        const previewContent = document.getElementById('previewContent');
+        
+        let previewHTML = `
+            <div class="mb-3">
+                <h6>設定情報:</h6>
+                <p class="mb-1">
+                    <strong>難易度:</strong> 
+                    <span class="badge bg-${getDifficultyColor(difficulty)}">${getDifficultyText(difficulty)}</span>
+                </p>
+                <p class="mb-1">
+                    <strong>カテゴリ:</strong> 
+                    <span class="badge bg-${getCategoryColor(category)}">${getCategoryText(category)}</span>
+                </p>
+            </div>
+        `;
+        
+        if (customQuestion.trim()) {
+            previewHTML += `
+                <div class="mb-3">
+                    <h6>カスタム問題文:</h6>
+                    <p class="mb-0 text-muted">${customQuestion}</p>
+                </div>
+            `;
+        } else {
+            previewHTML += `
+                <div class="mb-3">
+                    <h6>問題生成:</h6>
+                    <p class="mb-0 text-muted">音声内容を分析して自動的に穴埋め問題を生成します</p>
+                </div>
+            `;
+        }
+        
+        previewContent.innerHTML = previewHTML;
+        previewCard.style.display = 'block';
+    }
+}
+
+// 難易度の色を取得
+function getDifficultyColor(difficulty) {
+    const colors = {
+        'easy': 'success',
+        'medium': 'warning',
+        'hard': 'danger'
+    };
+    return colors[difficulty] || 'secondary';
+}
+
+// 難易度のテキストを取得
+function getDifficultyText(difficulty) {
+    const texts = {
+        'easy': '初級',
+        'medium': '中級',
+        'hard': '上級'
+    };
+    return texts[difficulty] || '未設定';
+}
+
+// カテゴリの色を取得
+function getCategoryColor(category) {
+    const colors = {
+        'conversation': 'primary',
+        'news': 'info',
+        'story': 'warning',
+        'academic': 'dark'
+    };
+    return colors[category] || 'secondary';
+}
+
+// カテゴリのテキストを取得
+function getCategoryText(category) {
+    const texts = {
+        'conversation': '会話',
+        'news': 'ニュース',
+        'story': '物語',
+        'academic': '学術'
+    };
+    return texts[category] || '未設定';
+}
+
+// フォーム送信処理
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const file = document.getElementById('audioFile').files[0];
+    
+    if (!file) {
+        showMessage('音声ファイルを選択してください', 'warning');
+        return;
+    }
+    
+    // ファイルサイズチェック（10MB）
+    if (file.size > 10 * 1024 * 1024) {
+        showMessage('ファイルサイズは10MB以下にしてください', 'error');
+        return;
+    }
+    
+    // アップロード開始
+    startUpload(formData);
+}
+
+// アップロード開始
+function startUpload(formData) {
+    uploadModal = new bootstrap.Modal(document.getElementById('uploadProgressModal'));
+    uploadModal.show();
+    
+    // 進行状況を開始
+    uploadProgress = 0;
+    updateProgress();
+    
+    // ステータス1を表示
+    document.getElementById('status1').style.display = 'block';
+    
+    // アップロード処理
+    uploadFile(formData);
+}
+
+// ファイルアップロード
+async function uploadFile(formData) {
+    try {
+        // ステータス2（音声解析中）
+        setTimeout(() => {
+            document.getElementById('status1').style.display = 'none';
+            document.getElementById('status2').style.display = 'block';
+            uploadProgress = 50;
+            updateProgress();
+        }, 2000);
+        
+        // ステータス3（問題生成中）
+        setTimeout(() => {
+            document.getElementById('status2').style.display = 'none';
+            document.getElementById('status3').style.display = 'block';
+            uploadProgress = 80;
+            updateProgress();
+        }, 4000);
+        
+        const response = await fetch('/api/upload_audio', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // ステータス4（完了）
+            setTimeout(() => {
+                document.getElementById('status3').style.display = 'none';
+                document.getElementById('status4').style.display = 'block';
+                uploadProgress = 100;
+                updateProgress();
+                
+                // 完了後、問題ページにリダイレクト
+                setTimeout(() => {
+                    uploadModal.hide();
+                    window.location.href = `/learn/${result.question_id}`;
+                }, 1500);
+            }, 2000);
+            
+        } else {
+            throw new Error('アップロードに失敗しました');
+        }
+        
+    } catch (error) {
+        console.error('Upload error:', error);
+        showMessage('アップロードに失敗しました: ' + error.message, 'error');
+        uploadModal.hide();
+    }
+}
+
+// 進行状況更新
+function updateProgress() {
+    const progressBar = document.getElementById('uploadProgress');
+    progressBar.style.width = uploadProgress + '%';
+    progressBar.setAttribute('aria-valuenow', uploadProgress);
+}
+
+// メッセージ表示
+function showMessage(message, type = 'info') {
+    if (window.AppUtils) {
+        window.AppUtils.showMessage(message, type);
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

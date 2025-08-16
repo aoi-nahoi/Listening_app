@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}復習 - 英語リスニングアプリ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/review.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- ページヘッダー -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-2">
+                                <i class="fas fa-redo me-2"></i>復習センター
+                            </h2>
+                            <p class="mb-0 fs-5">間違えた問題を復習して、弱点を克服しましょう！</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="display-4 text-white">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 復習サマリー -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white text-center">
+                <div class="card-body">
+                    <i class="fas fa-times-circle fa-2x mb-2"></i>
+                    <h4 class="mb-1" id="wrong-questions-count">0</h4>
+                    <p class="mb-0">間違えた問題</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <h4 class="mb-1" id="study-time">0</h4>
+                    <p class="mb-0">総学習時間(分)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <h4 class="mb-1" id="accuracy-rate">0%</h4>
+                    <p class="mb-0">正答率</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                    <h4 class="mb-1" id="study-days">0</h4>
+                    <p class="mb-0">学習日数</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="row">
+        <!-- 左側: 間違えた問題リスト -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>間違えた問題リスト
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="wrong-questions-list">
+                        <!-- 間違えた問題がここに動的に表示される -->
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                            <p>読み込み中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側: スコア推移グラフ -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>スコア推移
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="scoreChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学習履歴と回答履歴 -->
+    <div class="row mt-4">
+        <!-- 学習履歴 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>学習履歴
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="learning-history">
+                        <!-- 学習履歴がここに動的に表示される -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回答履歴 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>回答履歴
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="answer-history">
+                        <!-- 回答履歴がここに動的に表示される -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 復習モーダル -->
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewModalLabel">問題を復習</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="review-question-content">
+                        <!-- 復習する問題の内容がここに表示される -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-primary" id="start-review">復習開始</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/review.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}新規登録 - 英語リスニングアプリ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>新規登録
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user me-1"></i>ユーザー名
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="username" 
+                               name="username" 
+                               required 
+                               minlength="3"
+                               maxlength="20"
+                               pattern="[a-zA-Z0-9_]+"
+                               title="ユーザー名は3-20文字の英数字とアンダースコアのみ使用可能です"
+                               placeholder="3-20文字の英数字">
+                        <div class="form-text">英数字とアンダースコアのみ使用可能（3-20文字）</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>メールアドレス
+                        </label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="email" 
+                               name="email" 
+                               required 
+                               autocomplete="email"
+                               placeholder="example@email.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>パスワード
+                        </label>
+                        <div class="password-container">
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   required 
+                                   minlength="8"
+                                   autocomplete="new-password"
+                                   placeholder="8文字以上">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">8文字以上で入力してください</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>パスワード確認
+                            </label>
+                        <div class="password-container">
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   required 
+                                   autocomplete="new-password"
+                                   placeholder="パスワードを再入力">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirm_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text" id="passwordMatch"></div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                        <label class="form-check-label" for="terms">
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">利用規約</a>に同意する
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                            <i class="fas fa-user-plus me-2"></i>アカウント作成
+                        </button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p class="mb-2">既にアカウントをお持ちの方は</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>ログイン
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 登録のメリット -->
+        <div class="card mt-4 border-0 bg-light">
+            <div class="card-body text-center">
+                <h5 class="card-title text-success">
+                    <i class="fas fa-star me-2"></i>登録のメリット
+                </h5>
+                <div class="row mt-3">
+                    <div class="col-6">
+                        <i class="fas fa-save fa-2x text-primary mb-2"></i>
+                        <p class="small mb-0">学習進捗保存</p>
+                    </div>
+                    <div class="col-6">
+                        <i class="fas fa-chart-bar fa-2x text-info mb-2"></i>
+                        <p class="small mb-0">詳細な分析</p>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-6">
+                        <i class="fas fa-lightbulb fa-2x text-warning mb-2"></i>
+                        <p class="small mb-0">AI推奨機能</p>
+                    </div>
+                    <div class="col-6">
+                        <i class="fas fa-upload fa-2x text-success mb-2"></i>
+                        <p class="small mb-0">音声アップロード</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 利用規約モーダル -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">利用規約</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. サービス利用について</h6>
+                <p>本サービスは英語リスニング学習を目的としたWebアプリケーションです。</p>
+                
+                <h6>2. アカウント管理</h6>
+                <p>ユーザーは自身のアカウント情報を適切に管理し、第三者に譲渡しないでください。</p>
+                
+                <h6>3. コンテンツ利用</h6>
+                <p>アップロードされる音声ファイルは適切な権利を持つコンテンツのみ使用してください。</p>
+                
+                <h6>4. プライバシー</h6>
+                <p>個人情報は適切に管理され、学習目的以外での使用はありません。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// パスワード表示切り替え機能
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.parentElement.querySelector('.password-toggle-btn i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('registerForm');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordMatch = document.getElementById('passwordMatch');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // パスワード一致チェック
+    function checkPasswordMatch() {
+        if (confirmPassword.value === '') {
+            passwordMatch.textContent = '';
+            passwordMatch.className = 'form-text';
+        } else if (password.value === confirmPassword.value) {
+            passwordMatch.textContent = '✓ パスワードが一致しています';
+            passwordMatch.className = 'form-text text-success';
+            submitBtn.disabled = false;
+        } else {
+            passwordMatch.textContent = '✗ パスワードが一致しません';
+            passwordMatch.className = 'form-text text-danger';
+            submitBtn.disabled = true;
+        }
+    }
+    
+    password.addEventListener('input', checkPasswordMatch);
+    confirmPassword.addEventListener('input', checkPasswordMatch);
+    
+    // フォーム送信前の最終チェック
+    form.addEventListener('submit', function(e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert('パスワードが一致しません。');
+            return false;
+        }
+        
+        if (password.value.length < 8) {
+            e.preventDefault();
+            alert('パスワードは8文字以上で入力してください。');
+            return false;
+        }
+        
+        if (!document.getElementById('terms').checked) {
+            e.preventDefault();
+            alert('利用規約に同意してください。');
+            return false;
+        }
+    });
+    
+    // ユーザー名の文字数チェック
+    const username = document.getElementById('username');
+    username.addEventListener('input', function() {
+        const length = this.value.length;
+        if (length < 3) {
+            this.setCustomValidity('ユーザー名は3文字以上で入力してください');
+        } else if (length > 20) {
+            this.setCustomValidity('ユーザー名は20文字以下で入力してください');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+{% endblock %}

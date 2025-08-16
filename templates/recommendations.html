@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}推奨コンテンツ - 英語リスニングアプリ{% endblock %}
+
+{% block content %}
+<!-- ページヘッダー -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <i class="fas fa-lightbulb me-2"></i>推奨コンテンツ
+            </h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="refreshRecommendations()">
+                    <i class="fas fa-sync-alt me-2"></i>更新
+                </button>
+                <a href="{{ url_for('questions') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-2"></i>問題一覧
+                </a>
+            </div>
+        </div>
+        <p class="text-muted mt-2">あなたの学習履歴に基づいて、最適な学習コンテンツをおすすめします</p>
+    </div>
+</div>
+
+<!-- 学習分析サマリー -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>学習分析サマリー
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="display-6 text-primary mb-2" id="totalQuestions">0</div>
+                            <p class="mb-0 text-muted">総学習問題数</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="display-6 text-success mb-2" id="correctRate">0%</div>
+                            <p class="mb-0 text-muted">正答率</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="display-6 text-warning mb-2" id="avgScore">0</div>
+                            <p class="mb-0 text-muted">平均スコア</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="display-6 text-info mb-2" id="learningStreak">0</div>
+                            <p class="mb-0 text-muted">連続学習日数</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 推奨コンテンツ -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-star me-2"></i>今日の推奨コンテンツ
+        </h4>
+        <div class="row" id="recommendationsContainer">
+            <!-- 推奨コンテンツがここに動的に表示されます -->
+        </div>
+    </div>
+</div>
+
+<!-- 学習進捗分析 -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>分野別学習進捗
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="categoryProgress">
+                    <!-- 分野別進捗がここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-bullseye me-2"></i>学習目標
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="learningGoals">
+                    <!-- 学習目標がここに表示されます -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>改善が必要な分野
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="weakAreas">
+                    <!-- 改善が必要な分野がここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 学習履歴 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>最近の学習履歴
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recentHistory">
+                    <!-- 最近の学習履歴がここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ローディングスピナー -->
+<div class="text-center py-5" id="loadingSpinner" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+    <p class="mt-2 text-muted">推奨コンテンツを分析中...</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// グローバル変数
+let userStats = {};
+let recommendations = [];
+let learningHistory = [];
+
+// ページ読み込み時の初期化
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserStats();
+    loadRecommendations();
+    loadLearningHistory();
+});
+
+// ユーザー統計の読み込み
+async function loadUserStats() {
+    try {
+        const response = await fetch('/api/user/stats');
+        if (response.ok) {
+            userStats = await response.json();
+            updateStatsDisplay();
+        }
+    } catch (error) {
+        console.error('統計の読み込みに失敗:', error);
+    }
+}
+
+// 推奨コンテンツの読み込み
+async function loadRecommendations() {
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/recommendations');
+        if (response.ok) {
+            recommendations = await response.json();
+            displayRecommendations();
+        } else {
+            throw new Error('推奨コンテンツの読み込みに失敗しました');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('推奨コンテンツの読み込みに失敗しました');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// 学習履歴の読み込み
+async function loadLearningHistory() {
+    try {
+        const response = await fetch('/api/user/learning-history');
+        if (response.ok) {
+            learningHistory = await response.json();
+            displayLearningHistory();
+            updateCategoryProgress();
+            updateLearningGoals();
+            updateWeakAreas();
+        }
+    } catch (error) {
+        console.error('学習履歴の読み込みに失敗:', error);
+    }
+}
+
+// 統計表示の更新
+function updateStatsDisplay() {
+    document.getElementById('totalQuestions').textContent = userStats.total_questions || 0;
+    document.getElementById('correctRate').textContent = (userStats.correct_rate || 0) + '%';
+    document.getElementById('avgScore').textContent = (userStats.avg_score || 0).toFixed(1);
+    document.getElementById('learningStreak').textContent = userStats.learning_streak || 0;
+}
+
+// 推奨コンテンツの表示
+function displayRecommendations() {
+    const container = document.getElementById('recommendationsContainer');
+    
+    if (recommendations.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">推奨コンテンツがありません</h5>
+                    <p class="text-muted">まずは問題一覧から学習を始めてください</p>
+                    <a href="{{ url_for('questions') }}" class="btn btn-primary">
+                        <i class="fas fa-play me-2"></i>学習開始
+                    </a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = recommendations.map(question => createRecommendationCard(question)).join('');
+}
+
+// 推奨コンテンツカードの作成
+function createRecommendationCard(question) {
+    const difficultyBadge = getDifficultyBadge(question.difficulty);
+    const categoryBadge = getCategoryBadge(question.category);
+    const confidenceBadge = getConfidenceBadge(question.confidence);
+    
+    return `
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm recommendation-card" data-question-id="${question.id}">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-warning">
+                            <i class="fas fa-star me-1"></i>推奨度: ${question.recommendation_score || 'N/A'}
+                        </span>
+                        ${confidenceBadge}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        ${difficultyBadge}
+                        ${categoryBadge}
+                    </div>
+                    
+                    <h6 class="card-title">${question.question_text.substring(0, 60)}${question.question_text.length > 60 ? '...' : ''}</h6>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-lightbulb me-1"></i>推奨理由: ${question.recommendation_reason || '学習進捗に最適'}
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-info">
+                            <i class="fas fa-play me-1"></i>${question.play_count || 0}回
+                        </span>
+                        <span class="badge bg-success">
+                            <i class="fas fa-star me-1"></i>${question.avg_score || 0}点
+                        </span>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <a href="/learn/${question.id}" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>学習開始
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 分野別進捗の更新
+function updateCategoryProgress() {
+    const container = document.getElementById('categoryProgress');
+    
+    // 分野別の統計を計算
+    const categoryStats = {};
+    learningHistory.forEach(log => {
+        if (log.category) {
+            if (!categoryStats[log.category]) {
+                categoryStats[log.category] = { total: 0, correct: 0, score: 0 };
+            }
+            categoryStats[log.category].total++;
+            categoryStats[log.category].correct += log.score || 0;
+            categoryStats[log.category].score += log.score || 0;
+        }
+    });
+    
+    let progressHTML = '';
+    Object.entries(categoryStats).forEach(([category, stats]) => {
+        const accuracy = stats.total > 0 ? (stats.correct / stats.total * 100).toFixed(1) : 0;
+        const avgScore = stats.total > 0 ? (stats.score / stats.total).toFixed(1) : 0;
+        
+        progressHTML += `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">${getCategoryText(category)}</h6>
+                    <span class="badge bg-primary">${stats.total}問</span>
+                </div>
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" style="width: ${accuracy}%"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">正答率: ${accuracy}%</small>
+                    <small class="text-muted">平均スコア: ${avgScore}点</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = progressHTML || '<p class="text-muted">まだ学習履歴がありません</p>';
+}
+
+// 学習目標の更新
+function updateLearningGoals() {
+    const container = document.getElementById('learningGoals');
+    
+    const totalQuestions = learningHistory.length;
+    const currentLevel = Math.floor(totalQuestions / 10) + 1;
+    const nextLevelQuestions = currentLevel * 10;
+    
+    container.innerHTML = `
+        <div class="text-center mb-3">
+            <div class="display-6 text-primary mb-2">Level ${currentLevel}</div>
+            <p class="mb-0 text-muted">現在のレベル</p>
+        </div>
+        
+        <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+                <small>進捗</small>
+                <small>${totalQuestions}/${nextLevelQuestions}</small>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: ${(totalQuestions % 10) * 10}%"></div>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <small class="text-muted">
+                次のレベルまで ${nextLevelQuestions - totalQuestions} 問
+            </small>
+        </div>
+    `;
+}
+
+// 改善が必要な分野の更新
+function updateWeakAreas() {
+    const container = document.getElementById('weakAreas');
+    
+    // 正答率が低い分野を特定
+    const categoryStats = {};
+    learningHistory.forEach(log => {
+        if (log.category) {
+            if (!categoryStats[log.category]) {
+                categoryStats[log.category] = { total: 0, correct: 0 };
+            }
+            categoryStats[log.category].total++;
+            categoryStats[log.category].correct += log.score || 0;
+        }
+    });
+    
+    const weakAreas = Object.entries(categoryStats)
+        .filter(([category, stats]) => stats.total >= 3 && (stats.correct / stats.total) < 0.6)
+        .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total));
+    
+    if (weakAreas.length === 0) {
+        container.innerHTML = '<p class="text-muted">改善が必要な分野はありません</p>';
+        return;
+    }
+    
+    let weakAreasHTML = '';
+    weakAreas.slice(0, 3).forEach(([category, stats]) => {
+        const accuracy = (stats.correct / stats.total * 100).toFixed(1);
+        weakAreasHTML += `
+            <div class="mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>${getCategoryText(category)}</span>
+                    <span class="badge bg-danger">${accuracy}%</span>
+                </div>
+                <small class="text-muted">${stats.total}問中${stats.correct}問正解</small>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = weakAreasHTML;
+}
+
+// 学習履歴の表示
+function displayLearningHistory() {
+    const container = document.getElementById('recentHistory');
+    
+    if (learningHistory.length === 0) {
+        container.innerHTML = '<p class="text-muted">まだ学習履歴がありません</p>';
+        return;
+    }
+    
+    const recentHistory = learningHistory.slice(0, 5);
+    let historyHTML = '';
+    
+    recentHistory.forEach(log => {
+        const date = new Date(log.created_at).toLocaleDateString('ja-JP');
+        const scoreClass = log.score > 0 ? 'text-success' : 'text-danger';
+        const scoreIcon = log.score > 0 ? 'fa-check-circle' : 'fa-times-circle';
+        
+        historyHTML += `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <i class="fas ${scoreIcon} ${scoreClass} me-2"></i>
+                    <span class="fw-bold">問題 #${log.question_id}</span>
+                    <small class="text-muted ms-2">${date}</small>
+                </div>
+                <div>
+                    <span class="badge bg-${log.score > 0 ? 'success' : 'danger'}">
+                        ${log.score > 0 ? '正解' : '不正解'}
+                    </span>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = historyHTML;
+}
+
+// 推奨コンテンツの更新
+function refreshRecommendations() {
+    loadRecommendations();
+}
+
+// ローディング表示
+function showLoading(show) {
+    document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+}
+
+// エラー表示
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+    errorDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertBefore(errorDiv, container.firstChild);
+    }
+}
+
+// 難易度バッジの取得
+function getDifficultyBadge(difficulty) {
+    const badges = {
+        'easy': '<span class="badge bg-success">初級</span>',
+        'medium': '<span class="badge bg-warning">中級</span>',
+        'hard': '<span class="badge bg-danger">上級</span>'
+    };
+    return badges[difficulty] || '<span class="badge bg-secondary">未設定</span>';
+}
+
+// カテゴリバッジの取得
+function getCategoryBadge(category) {
+    const badges = {
+        'conversation': '<span class="badge bg-primary">会話</span>',
+        'news': '<span class="badge bg-info">ニュース</span>',
+        'story': '<span class="badge bg-warning">物語</span>',
+        'academic': '<span class="badge bg-dark">学術</span>'
+    };
+    return badges[category] || '<span class="badge bg-secondary">未設定</span>';
+}
+
+// 推奨度バッジの取得
+function getConfidenceBadge(confidence) {
+    if (confidence >= 0.8) return '<span class="badge bg-success">高</span>';
+    if (confidence >= 0.5) return '<span class="badge bg-warning">中</span>';
+    return '<span class="badge bg-danger">低</span>';
+}
+
+// カテゴリテキストの取得
+function getCategoryText(category) {
+    const texts = {
+        'conversation': '会話',
+        'news': 'ニュース',
+        'story': '物語',
+        'academic': '学術'
+    };
+    return texts[category] || category;
+}
+</script>
+{% endblock %}

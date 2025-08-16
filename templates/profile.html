@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}プロフィール - 英語リスニングアプリ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 左側: プロフィール情報 -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-circle me-2"></i>プロフィール情報
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="avatar-placeholder bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ user.username[0].upper() }}
+                    </div>
+                    <h5>{{ user.username }}</h5>
+                    <p class="text-muted">{{ user.email }}</p>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <label class="form-label">ユーザー名</label>
+                    <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">メールアドレス</label>
+                    <input type="email" class="form-control" value="{{ user.email }}" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">登録日</label>
+                    <input type="text" class="form-control" value="2024年1月" readonly>
+                </div>
+                
+                <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="fas fa-edit me-2"></i>プロフィール編集
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右側: 学習統計と履歴 -->
+    <div class="col-lg-8">
+        <!-- 学習統計サマリー -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-question-circle fa-2x mb-2"></i>
+                        <h4 class="mb-1">{{ total_questions }}</h4>
+                        <p class="mb-0">解答した問題数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <h4 class="mb-1">{{ correct_answers }}</h4>
+                        <p class="mb-0">正解数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-percentage fa-2x mb-2"></i>
+                        <h4 class="mb-1">{{ "%.1f"|format(accuracy) }}%</h4>
+                        <p class="mb-0">正答率</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 学習履歴 -->
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>最近の学習履歴
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_logs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>日時</th>
+                                    <th>問題ID</th>
+                                    <th>回答</th>
+                                    <th>結果</th>
+                                    <th>スコア</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_logs %}
+                                <tr>
+                                    <td>{{ log.id }}</td>
+                                    <td>#{{ log.question_id or 'N/A' }}</td>
+                                    <td>{{ log.user_answer or 'N/A' }}</td>
+                                    <td>
+                                        {% if log.score == 1 %}
+                                            <span class="badge bg-success">正解</span>
+                                        {% elif log.score == 0 %}
+                                            <span class="badge bg-danger">不正解</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">未採点</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.score or 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">まだ学習履歴がありません</p>
+                        <a href="#" class="btn btn-primary">学習を始める</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 学習目標設定 -->
+        <div class="card shadow mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-bullseye me-2"></i>学習目標
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">1日の学習時間（分）</label>
+                            <input type="number" class="form-control" value="30" min="10" max="180">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">週の学習日数</label>
+                            <select class="form-select">
+                                <option value="3">3日</option>
+                                <option value="5" selected>5日</option>
+                                <option value="7">毎日</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-warning">
+                    <i class="fas fa-save me-2"></i>目標を保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- プロフィール編集モーダル -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">プロフィール編集</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="mb-3">
+                        <label class="form-label">ユーザー名</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" name="username">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">メールアドレス</label>
+                        <input type="email" class="form-control" value="{{ user.email }}" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新しいパスワード（変更しない場合は空欄）</label>
+                        <div class="password-container">
+                            <input type="password" class="form-control" id="new_password" name="new_password" minlength="8">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('new_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">パスワード確認</label>
+                        <div class="password-container">
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="8">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirm_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfile()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// パスワード表示切り替え機能
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.parentElement.querySelector('.password-toggle-btn i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye';
+    }
+}
+
+function saveProfile() {
+    const form = document.getElementById('editProfileForm');
+    const formData = new FormData(form);
+    
+    // パスワード一致チェック
+    const newPassword = formData.get('new_password');
+    const confirmPassword = formData.get('confirm_password');
+    
+    if (newPassword && newPassword !== confirmPassword) {
+        alert('パスワードが一致しません。');
+        return;
+    }
+    
+    // ここでAPIを呼び出してプロフィールを更新
+    // 実際の実装では、fetch()を使用してサーバーにデータを送信
+    
+    alert('プロフィールが更新されました。');
+    location.reload();
+}
+
+// 学習統計のアニメーション（オプション）
+document.addEventListener('DOMContentLoaded', function() {
+    // 数値カウントアップアニメーション
+    const counters = document.querySelectorAll('.card h4');
+    counters.forEach(counter => {
+        const target = parseInt(counter.textContent);
+        const increment = target / 50;
+        let current = 0;
+        
+        const updateCounter = () => {
+            if (current < target) {
+                current += increment;
+                counter.textContent = Math.ceil(current);
+                setTimeout(updateCounter, 20);
+            } else {
+                counter.textContent = target;
+            }
+        };
+        
+        updateCounter();
+    });
+});
+</script>
+{% endblock %}

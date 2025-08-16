@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}ダッシュボード - 英語リスニングアプリ{% endblock %}
+
+{% block content %}
+<!-- ウェルカムセクション -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-gradient-primary text-white">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2">
+                            <i class="fas fa-sun me-2"></i>おはようございます、{{ user.username }}さん！
+                        </h2>
+                        <p class="mb-0 fs-5">今日も英語リスニングの学習を頑張りましょう！</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="display-4 text-warning">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- クイックアクション -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-bolt me-2"></i>クイックアクション
+        </h4>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="card text-center h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-play-circle fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">学習開始</h5>
+                        <p class="card-text">新しい問題に挑戦しましょう</p>
+                        <a href="{{ url_for('questions') }}" class="btn btn-primary">開始</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-upload fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">音声アップロード</h5>
+                        <p class="card-text">新しい音声ファイルを追加</p>
+                        <a href="{{ url_for('upload') }}" class="btn btn-success">アップロード</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-redo fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">復習</h5>
+                        <p class="card-text">間違えた問題を復習</p>
+                        <a href="{{ url_for('review') }}" class="btn btn-warning">復習</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">進捗確認</h5>
+                        <p class="card-text">学習の進捗を確認</p>
+                        <a href="{{ url_for('profile') }}" class="btn btn-info">確認</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 学習進捗サマリー -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-chart-bar me-2"></i>学習進捗サマリー
+        </h4>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                        <h4 class="mb-1">5</h4>
+                        <p class="mb-0">今週の学習日数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <h4 class="mb-1">120</h4>
+                        <p class="mb-0">今週の学習時間（分）</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-star fa-2x mb-2"></i>
+                        <h4 class="mb-1">{{ total_score }}</h4>
+                        <p class="mb-0">累計スコア</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-warning text-dark text-center">
+                    <div class="card-body">
+                        <i class="fas fa-fire fa-2x mb-2"></i>
+                        <h4 class="mb-1">7</h4>
+                        <p class="mb-0">連続学習日数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 最近の問題 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-question-circle me-2"></i>最近の問題
+        </h4>
+        {% if recent_questions %}
+            <div class="row">
+                {% for question in recent_questions %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-secondary">#{{ question.id }}</span>
+                                <small class="text-muted">新着</small>
+                            </div>
+                            <h6 class="card-title">{{ question.question_text[:50] }}{% if question.question_text|length > 50 %}...{% endif %}</h6>
+                            <p class="card-text text-muted small">
+                                <i class="fas fa-user me-1"></i>{{ question.uploader.username if question.uploader else 'Unknown' }}
+                            </p>
+                            <div class="d-grid">
+                                <a href="#" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-play me-1"></i>学習開始
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">まだ問題がありません</p>
+                    <a href="#" class="btn btn-primary">音声をアップロード</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 学習のヒント -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 bg-light">
+            <div class="card-body">
+                <h5 class="card-title text-primary">
+                    <i class="fas fa-lightbulb me-2"></i>今日の学習のヒント
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                音声を2回聞いてから回答しましょう
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                間違えた問題は必ず復習しましょう
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                毎日少しずつでも継続することが大切です
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                自分のペースで無理なく学習しましょう
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 週間学習グラフ（プレースホルダー） -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>週間学習グラフ
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">学習データが蓄積されると、ここにグラフが表示されます</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 数値カウントアップアニメーション
+    const counters = document.querySelectorAll('.card h4');
+    counters.forEach(counter => {
+        const target = parseInt(counter.textContent);
+        if (!isNaN(target)) {
+            const increment = target / 50;
+            let current = 0;
+            
+            const updateCounter = () => {
+                if (current < target) {
+                    current += increment;
+                    counter.textContent = Math.ceil(current);
+                    setTimeout(updateCounter, 20);
+                } else {
+                    counter.textContent = target;
+                }
+            };
+            
+            updateCounter();
+        }
+    });
+    
+    // 現在時刻に基づく挨拶の更新
+    const now = new Date();
+    const hour = now.getHours();
+    let greeting = '';
+    
+    if (hour < 12) {
+        greeting = 'おはようございます';
+    } else if (hour < 18) {
+        greeting = 'こんにちは';
+    } else {
+        greeting = 'こんばんは';
+    }
+    
+    const greetingElement = document.querySelector('.card h2');
+    if (greetingElement) {
+        greetingElement.innerHTML = `<i class="fas fa-sun me-2"></i>${greeting}、${greetingElement.textContent.split('、')[1]}`;
+    }
+});
+</script>
+{% endblock %}
