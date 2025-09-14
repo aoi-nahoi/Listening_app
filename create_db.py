@@ -6,6 +6,10 @@
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 環境変数を読み込み
+load_dotenv()
 
 # プロジェクトのルートディレクトリをPythonパスに追加
 project_root = Path(__file__).parent
@@ -18,11 +22,12 @@ def create_database():
     """データベースとテーブルを作成する"""
     with app.app_context():
         try:
-            # データベースファイルが存在する場合は削除
-            db_path = Path('instance/listening.db')
-            if db_path.exists():
-                db_path.unlink()
-                print("既存のデータベースファイルを削除しました")
+            # SQLiteの場合のみ既存ファイルを削除
+            if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+                db_path = Path('instance/listening.db')
+                if db_path.exists():
+                    db_path.unlink()
+                    print("既存のデータベースファイルを削除しました")
             
             # データベースとテーブルを作成
             db.create_all()

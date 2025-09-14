@@ -10,6 +10,10 @@ import logging
 from ml_recommendations import recommend_content  # 推薦機能をインポート
 from google.cloud import speech
 import re
+from dotenv import load_dotenv
+
+# 環境変数を読み込み
+load_dotenv()
 
 
 # ロガー設定
@@ -20,12 +24,20 @@ app = Flask(__name__)
 
 # 設定
 import os
-# データベースの絶対パスを設定
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'listening.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
+# データベース設定（環境変数から取得、デフォルトはSQLite）
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    # RenderやHerokuなどの本番環境用（PostgreSQL）
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # 開発環境用（SQLite）
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'listening.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
 app.config['UPLOAD_FOLDER'] = './static/audio'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # 本番環境では環境変数から取得
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')  # 環境変数から取得
 
 # データベース初期化
 db.init_app(app)
@@ -124,11 +136,11 @@ def profile():
     recent_logs = LearningLog.query.filter_by(user_id=current_user.id).order_by(LearningLog.id.desc()).limit(5).all()
     
     return render_template('profile.html', 
-                         user=current_user, 
-                         total_questions=total_questions,
-                         correct_answers=correct_answers,
-                         accuracy=accuracy,
-                         recent_logs=recent_logs)
+                        user=current_user, 
+                        total_questions=total_questions,
+                        correct_answers=correct_answers,
+                        accuracy=accuracy,
+                        recent_logs=recent_logs)
 
 @app.route('/dashboard')
 @login_required
@@ -141,9 +153,9 @@ def dashboard():
     total_score = sum(log.score or 0 for log in learning_logs)
     
     return render_template('dashboard.html', 
-                         user=current_user,
-                         recent_questions=recent_questions,
-                         total_score=total_score)
+                        user=current_user,
+                        recent_questions=recent_questions,
+                        total_score=total_score)
 
 # メイン学習系のルート
 @app.route('/questions')
@@ -1029,10 +1041,10 @@ def review_detail(question_id):
         review_count = len(review_logs)
         
         return render_template('review_detail.html', 
-                             question=question,
-                             wrong_count=wrong_count,
-                             last_score=last_score,
-                             review_count=review_count)
+                            question=question,
+                            wrong_count=wrong_count,
+                            last_score=last_score,
+                            review_count=review_count)
     except Exception as e:
         logger.error(f"復習詳細ページ表示エラー: {e}")
         flash('復習ページの表示に失敗しました', 'error')

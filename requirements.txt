@@ -4,3 +4,6 @@ flask-migrate
 werkzeug
 flask-login
 google-cloud-speech
+psycopg2-binary
+python-dotenv
+gunicorn

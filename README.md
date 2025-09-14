@@ -54,6 +54,7 @@
 
 ### データベース
 - **SQLite**: 開発用データベース
+- **PostgreSQL**: 本番環境用データベース（Render対応）
 - **Alembic**: データベースマイグレーション管理
 
 ### 外部API
@@ -181,6 +182,21 @@ gcloud config set project YOUR_PROJECT_ID
 
 ### 6. 環境変数の設定
 ```bash
+# 開発環境用の環境変数設定
+# .envファイルを作成して以下の内容を設定
+
+# データベース設定（開発環境ではSQLiteを使用）
+# DATABASE_URL=sqlite:///instance/listening.db
+
+# 本番環境ではPostgreSQLを使用
+# DATABASE_URL=postgresql://username:password@localhost:5432/listening_app
+
+# セキュリティ設定
+SECRET_KEY=your-secret-key-here
+
+# Google Cloud Speech-to-Text API設定
+GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
+
 # Windows
 set GOOGLE_APPLICATION_CREDENTIALS=path\to\your\credentials.json
 
@@ -318,9 +334,35 @@ python -m pytest --cov=app tests/
 
 ## デプロイ
 
+### Renderでのデプロイ
+
+1. **GitHubリポジトリの準備**
+   - コードをGitHubリポジトリにプッシュ
+
+2. **Renderでの設定**
+   - Render.comにアクセスしてアカウント作成
+   - "New +" → "Web Service"を選択
+   - GitHubリポジトリを接続
+   - 以下の設定を行う：
+     - **Build Command**: `pip install -r requirements.txt && flask db upgrade`
+     - **Start Command**: `gunicorn app:app`
+     - **Environment Variables**:
+       - `SECRET_KEY`: ランダムな文字列を生成
+       - `DATABASE_URL`: RenderのPostgreSQLデータベースの接続文字列（自動設定）
+       - `GOOGLE_APPLICATION_CREDENTIALS`: Google Cloud認証情報（手動設定）
+
+3. **PostgreSQLデータベースの作成**
+   - Renderダッシュボードで"New +" → "PostgreSQL"を選択
+   - データベース名を設定（例：listening-db）
+   - 接続文字列が自動的に`DATABASE_URL`環境変数に設定される
+
+4. **デプロイの実行**
+   - 設定完了後、自動的にデプロイが開始される
+   - デプロイ完了後、提供されたURLでアプリケーションにアクセス可能
+
 ### 本番環境での注意点
 1. `SECRET_KEY`を環境変数から取得
-2. データベースをPostgreSQL等に変更
+2. データベースをPostgreSQLに変更（完了）
 3. 静的ファイルのCDN配信
 4. HTTPS通信の有効化
 5. ログローテーションの設定
