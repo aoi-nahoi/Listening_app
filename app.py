@@ -7,8 +7,10 @@ from extensions import db
 import os
 import io
 import logging
+import time
 from ml_recommendations import recommend_content  # 推薦機能をインポート
 from google.cloud import speech
+from google.cloud import speech_v1p1beta1 as speech_beta
 import re
 from dotenv import load_dotenv
 
@@ -178,28 +180,50 @@ def upload():
     return render_template('upload.html')
 
 
-# 音声認識モデル
+# 音声認識（MP3/WAV対応・フォーマットに応じた最適設定）
 def transcribe_audio(audio_file_path):
-    client = speech.SpeechClient()
+    ext = os.path.splitext(audio_file_path)[1].lower()
+    with io.open(audio_file_path, "rb") as f:
+        content = f.read()
 
-    with io.open(audio_file_path, "rb") as audio_file:
-        content = audio_file.read()
+    # MP3: v1p1beta1 のみ対応。正しいエンコーディング指定で高速・確実に認識
+    if ext == ".mp3":
+        client = speech_beta.SpeechClient()
+        config = speech_beta.types.RecognitionConfig(
+            encoding=speech_beta.types.RecognitionConfig.AudioEncoding.MP3,
+            sample_rate_hertz=44100,
+            language_code="en-US",
+        )
+        audio = speech_beta.types.RecognitionAudio(content=content)
+        response = client.recognize(config=config, audio=audio)
+    # WAV: ヘッダから自動判定させる（サンプルレート等をAPIに任せる）
+    elif ext == ".wav":
+        client = speech_beta.SpeechClient()
+        config = speech_beta.types.RecognitionConfig(
+            encoding=speech_beta.types.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
+            language_code="en-US",
+        )
+        audio = speech_beta.types.RecognitionAudio(content=content)
+        response = client.recognize(config=config, audio=audio)
+    else:
+        # その他（未対応形式は LINEAR16 16kHz として扱う）
+        client = speech.SpeechClient()
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code="en-US",
+        )
+        audio = speech.RecognitionAudio(content=content)
+        response = client.recognize(config=config, audio=audio)
 
-    audio = speech.RecognitionAudio(content=content)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="en-US",
+    if not response.results:
+        return ""
+    transcript = " ".join(
+        result.alternatives[0].transcript for result in response.results
     )
-
-    response = client.recognize(config=config, audio=audio)
-
-    # テキスト化された音声
-    transcript = " ".join(result.alternatives[0].transcript for result in response.results)
     return transcript
 
 
-import re
 import random
 
 def generate_question(transcript: str):
@@ -240,42 +264,46 @@ def generate_question(transcript: str):
     return question_text, correct_answer
 
 
-# 音声アップロード用エンドポイント
+# 音声アップロード用エンドポイント（/upload_audio と /api/upload_audio の両方に対応）
 @app.route('/upload_audio', methods=['POST'])
+@app.route('/api/upload_audio', methods=['POST'])
 @login_required
 def upload_audio():
-    if 'file' not in request.files:
+    # フォームの name="audio_file" と name="file" の両方を受け付ける
+    file = request.files.get('audio_file') or request.files.get('file')
+    if not file:
         logger.error('No file part in the request')
         return jsonify({'error': 'No file part in the request'}), 400
-    
-    file = request.files['file']
     if file.filename == '':
         logger.warning('No file selected for uploading')
         return jsonify({'error': 'No file selected for uploading'}), 400
 
     try:
-        # 保存先ディレクトリを確実に作成
+        t0 = time.perf_counter()
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
+        t_save = time.perf_counter() - t0
+        logger.info(f'[upload] ファイル保存: {t_save:.2f}s')
 
-        # 音声認識を実行
+        t1 = time.perf_counter()
         transcript = transcribe_audio(filepath)
+        t_transcribe = time.perf_counter() - t1
+        logger.info(f'[upload] 音声認識(Speech-to-Text): {t_transcribe:.2f}s')
 
-        # テキストを書き起こしファイルとして保存
         transcript_path = os.path.splitext(filepath)[0] + '.txt'
         with open(transcript_path, 'w', encoding='utf-8') as f:
             f.write(transcript)
 
-        # 問題生成のロジックを追加
+        t2 = time.perf_counter()
         question_text, correct_answer = generate_question(transcript)
+        t_generate = time.perf_counter() - t2
+        logger.info(f'[upload] 穴埋め問題生成: {t_generate:.2f}s')
 
-        # 公開設定を取得
         is_public = request.form.get('is_public', 'true').lower() == 'true'
 
-        # データベースに保存
+        t3 = time.perf_counter()
         question = Question(
             audio_url=filepath,
             question_text=question_text,
@@ -285,9 +313,17 @@ def upload_audio():
         )
         db.session.add(question)
         db.session.commit()
+        t_db = time.perf_counter() - t3
+        logger.info(f'[upload] DB保存: {t_db:.2f}s')
 
-        logger.info(f'File uploaded successfully: {filepath}')
-        return jsonify({'message': 'File uploaded successfully', 'file_path': filepath, 'transcript_path': transcript_path, 'question_id': question.id}), 200
+        total = time.perf_counter() - t0
+        logger.info(f'[upload] 合計: {total:.2f}s (保存={t_save:.2f}, 音声認識={t_transcribe:.2f}, 問題生成={t_generate:.2f}, DB={t_db:.2f})')
+        return jsonify({
+            'message': 'File uploaded successfully',
+            'file_path': filepath,
+            'transcript_path': transcript_path,
+            'question_id': question.id,
+        }), 200
     except Exception as e:
         db.session.rollback()
         logger.error(f'Failed to save file: {str(e)}')
