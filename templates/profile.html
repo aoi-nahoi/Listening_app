@@ -35,7 +35,7 @@
                 
                 <div class="mb-3">
                     <label class="form-label">登録日</label>
-                    <input type="text" class="form-control" value="2024年1月" readonly>
+                    <input type="text" class="form-control" value="{{ registered_at }}" readonly>
                 </div>
                 
                 <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
@@ -123,7 +123,7 @@
                     <div class="text-center py-4">
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <p class="text-muted">まだ学習履歴がありません</p>
-                        <a href="#" class="btn btn-primary">学習を始める</a>
+                        <a href="{{ url_for('questions') }}" class="btn btn-primary">学習を始める</a>
                     </div>
                 {% endif %}
             </div>

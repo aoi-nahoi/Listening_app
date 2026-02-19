@@ -39,7 +39,7 @@
                     <div class="col-md-8">
                         <div class="audio-player-container">
                             <audio id="audioPlayer" controls class="w-100">
-                                <source src="{{ url_for('static', filename='audio/' + question.audio_file) }}" type="audio/mpeg">
+                                <source src="{{ audio_src }}" type="audio/mpeg">
                                 お使いのブラウザは音声再生に対応していません。
                             </audio>
                         </div>

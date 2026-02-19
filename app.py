@@ -167,9 +167,18 @@ def profile():
     
     # 最近の学習履歴
     recent_logs = LearningLog.query.filter_by(user_id=current_user.id).order_by(LearningLog.id.desc()).limit(5).all()
-    
-    return render_template('profile.html', 
-                        user=current_user, 
+
+    # 登録日（User.created_at が無い既存ユーザーは '—'）
+    registered_at = '—'
+    if getattr(current_user, 'created_at', None):
+        try:
+            registered_at = current_user.created_at.strftime('%Y年%m月%d日')
+        except Exception:
+            pass
+
+    return render_template('profile.html',
+                        user=current_user,
+                        registered_at=registered_at,
                         total_questions=total_questions,
                         correct_answers=correct_answers,
                         accuracy=accuracy,
@@ -216,7 +225,13 @@ def questions():
 def learn(question_id):
     """問題学習ページ"""
     question = Question.query.get_or_404(question_id)
-    return render_template('learn.html', question=question)
+    # 音声URL: DBには ./static/audio/ や フルパス が入る場合があるため、配信用URLに正規化
+    raw = question.audio_url or ''
+    if raw.startswith('/') or raw.startswith('http'):
+        audio_src = raw
+    else:
+        audio_src = url_for('static', filename='audio/' + raw.replace('\\', '/').split('/')[-1])
+    return render_template('learn.html', question=question, audio_src=audio_src)
 
 @app.route('/upload')
 @login_required

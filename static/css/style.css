@@ -76,36 +76,45 @@ body {
     margin-bottom: 0.5rem;
 }
 
-/* パスワード表示切り替えボタンのスタイル */
+/* パスワード表示切り替え: 入力とボタンの高さ・角を揃える */
 .password-container {
-    position: relative;
     display: flex;
     align-items: stretch;
+    position: relative;
+    width: 100%;
+}
+
+.password-container .form-control {
+    flex: 1;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-right: 2.75rem;
+    min-height: 38px;
 }
 
 .password-toggle-btn {
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: calc(1.5em + 0.75rem + 2px);
-    width: 42px;
-    border: none;
-    background-color: #f8f9fa;
-    border-left: 1px solid #dee2e6;
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-    color: #6c757d;
-    transition: all 0.3s ease;
-    z-index: 10;
-    display: flex;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: auto;
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    background-color: #e9ecef;
+    color: #495057;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .password-toggle-btn:hover {
-    background-color: #e9ecef;
-    color: #495057;
+    background-color: #dee2e6;
+    color: #212529;
 }
 
 .password-toggle-btn:focus {
@@ -114,14 +123,7 @@ body {
 }
 
 .password-toggle-btn i {
-    font-size: 14px;
-}
-
-/* パスワード入力フィールドの右側の角丸を調整 */
-.password-container .form-control {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    padding-right: 50px;
+    font-size: 1rem;
 }
 
 /* アラートのスタイル */
@@ -241,13 +243,8 @@ footer {
     }
     
     /* モバイルでのパスワードボタン調整 */
-    .password-toggle-btn {
-        width: 38px;
-        height: calc(1.5em + 0.5rem + 2px);
-    }
-    
     .password-container .form-control {
-        padding-right: 45px;
+        padding-right: 2.75rem;
     }
 }
 

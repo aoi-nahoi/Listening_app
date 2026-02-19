@@ -11,13 +11,27 @@ class ReviewManager {
     }
 
     async init() {
-        await this.loadUserData();
-        await this.loadWrongQuestions();
-        await this.loadLearningHistory();
-        await this.loadAnswerHistory();
-        this.initScoreChart();
-        this.updateSummaryStats();
-        this.bindEvents();
+        try {
+            await this.loadUserData();
+            await this.loadWrongQuestions();
+            await this.loadLearningHistory();
+            await this.loadAnswerHistory();
+            this.initScoreChart();
+            this.updateSummaryStats();
+            this.bindEvents();
+        } catch (err) {
+            console.error('復習ページの初期化エラー:', err);
+            const container = document.getElementById('wrong-questions-list');
+            if (container) {
+                container.innerHTML = `
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        データの読み込み中にエラーが発生しました。
+                        <button type="button" class="btn btn-sm btn-outline-warning ms-2" onclick="location.reload()">再読み込み</button>
+                    </div>
+                `;
+            }
+        }
     }
 
     async loadUserData() {
@@ -74,7 +88,6 @@ class ReviewManager {
             }
         } catch (error) {
             console.error('回答履歴の読み込みに失敗しました:', error);
-        }
         }
     }
 
@@ -204,11 +217,12 @@ class ReviewManager {
     }
 
     initScoreChart() {
-        const ctx = document.getElementById('scoreChart').getContext('2d');
-        
-        // サンプルデータ（実際のAPIから取得したデータに置き換える）
+        const canvas = document.getElementById('scoreChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
         const sampleData = this.generateSampleScoreData();
-        
         this.scoreChart = new Chart(ctx, {
             type: 'line',
             data: {

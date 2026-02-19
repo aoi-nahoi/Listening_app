@@ -6,6 +6,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(50), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=True, default=db.func.current_timestamp())  # 登録日時
     questions = db.relationship('Question', backref='uploader', lazy=True)  # ユーザーがアップロードした問題
 
 class Question(db.Model):
