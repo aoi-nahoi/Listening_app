@@ -6,8 +6,8 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(50), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=True, default=db.func.current_timestamp())  # 登録日時
-    questions = db.relationship('Question', backref='uploader', lazy=True)  # ユーザーがアップロードした問題
+    # 登録日: マイグレーション add_user_created_at 適用後にカラムを追加し、ここに created_at を定義するとプロフィールで表示されます
+    questions = db.relationship('Question', backref='uploader', lazy=True)
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -352,6 +352,7 @@ python -m pytest --cov=app tests/
    - 以下の設定を行う：
      - **Build Command**: `pip install -r requirements.txt && flask db upgrade`
      - **Start Command**: `gunicorn app:app`
+     - **環境変数に `FLASK_APP=app:app` を追加**（Build 時の `flask db upgrade` に必要。未設定だとマイグレーションが動かず 500 になる場合があります）
      - **Environment Variables**:
        - `SECRET_KEY`: ランダムな文字列を生成
        - `DATABASE_URL`: RenderのPostgreSQLデータベースの接続文字列（自動設定）
