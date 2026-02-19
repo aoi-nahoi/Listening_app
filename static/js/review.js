@@ -260,22 +260,28 @@ class ReviewManager {
     }
 
     updateSummaryStats() {
+        const safe = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
         // 間違えた問題数
-        document.getElementById('wrong-questions-count').textContent = this.wrongQuestions.length;
-        
+        safe('wrong-questions-count', this.wrongQuestions.length);
         // 総学習時間
         const totalStudyTime = this.learningHistory.reduce((total, entry) => total + (entry.time_spent || 0), 0);
-        document.getElementById('study-time').textContent = totalStudyTime;
-        
+        safe('study-time', totalStudyTime);
         // 正答率
         const correctAnswers = this.answerHistory.filter(entry => entry.is_correct).length;
         const totalAnswers = this.answerHistory.length;
         const accuracyRate = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-        document.getElementById('accuracy-rate').textContent = `${accuracyRate}%`;
+        safe('accuracy-rate', `${accuracyRate}%`);
         
-        // 学習日数
-        const uniqueStudyDates = new Set(this.learningHistory.map(entry => entry.study_date.split(' ')[0])).size;
-        document.getElementById('study-days').textContent = uniqueStudyDates;
+        // 学習日数（study_date が null/undefined の場合はスキップ）
+        const studyDates = this.learningHistory
+            .map(entry => entry.study_date)
+            .filter(Boolean)
+            .map(s => (typeof s === 'string' && s.includes(' ') ? s.split(' ')[0] : s));
+        const uniqueStudyDates = new Set(studyDates).size;
+        safe('study-days', uniqueStudyDates);
     }
 
     async reviewQuestion(questionId) {
@@ -369,7 +375,7 @@ class ReviewManager {
 
     async showQuestionDetails(questionId) {
         try {
-            const response = await fetch(`/api/review/question/${questionId}/details`);
+            const response = await fetch(`/api/review/question/${questionId}`);
             if (response.ok) {
                 const details = await response.json();
                 this.showDetailsModal(details);
@@ -411,7 +417,9 @@ class ReviewManager {
     }
 
     formatDate(dateString) {
+        if (dateString == null || dateString === '') return '—';
         const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return '—';
         return date.toLocaleDateString('ja-JP', {
             year: 'numeric',
             month: 'short',

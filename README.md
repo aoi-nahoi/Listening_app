@@ -194,7 +194,8 @@ gcloud config set project YOUR_PROJECT_ID
 # セキュリティ設定
 SECRET_KEY=your-secret-key-here
 
-# Google Cloud Speech-to-Text API設定
+# Google Cloud Speech-to-Text API設定（ローカル開発）
+# 認証用JSONファイルのパスを指定
 GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
 
 # Windows
@@ -202,6 +203,9 @@ set GOOGLE_APPLICATION_CREDENTIALS=path\to\your\credentials.json
 
 # macOS/Linux
 export GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
+
+# Render 等のクラウドではファイルパスが使えないため、JSON をそのまま環境変数に設定する
+# GOOGLE_CREDENTIALS_JSON={"type":"service_account","project_id":"...", ...} （サービスアカウントJSONの中身を1行で）
 ```
 
 ### 7. データベースの初期化
@@ -336,6 +340,8 @@ python -m pytest --cov=app tests/
 
 ### Renderでのデプロイ
 
+**※ 以下の設定はアプリをデプロイする開発者のみが行うものです。利用者（エンドユーザー）が行う必要はありません。**
+
 1. **GitHubリポジトリの準備**
    - コードをGitHubリポジトリにプッシュ
 
@@ -349,7 +355,7 @@ python -m pytest --cov=app tests/
      - **Environment Variables**:
        - `SECRET_KEY`: ランダムな文字列を生成
        - `DATABASE_URL`: RenderのPostgreSQLデータベースの接続文字列（自動設定）
-       - `GOOGLE_APPLICATION_CREDENTIALS`: Google Cloud認証情報（手動設定）
+       - **`GOOGLE_CREDENTIALS_JSON`**: 音声認識用。GCPのサービスアカウントキー（JSON）の**中身全体**を1行の文字列として貼り付ける（キー名は `GOOGLE_CREDENTIALS_JSON` または `GCP_CREDENTIALS_JSON`）。ローカルでは `GOOGLE_APPLICATION_CREDENTIALS` でファイルパスを指定しても可。
 
 3. **PostgreSQLデータベースの作成**
    - Renderダッシュボードで"New +" → "PostgreSQL"を選択

@@ -8,6 +8,7 @@ import os
 import io
 import logging
 import time
+from datetime import datetime, timedelta
 from ml_recommendations import recommend_content  # 推薦機能をインポート
 from google.cloud import speech
 from google.cloud import speech_v1p1beta1 as speech_beta
@@ -17,10 +18,40 @@ from dotenv import load_dotenv
 # 環境変数を読み込み
 load_dotenv()
 
-
 # ロガー設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _ensure_gcp_credentials():
+    """
+    Render 等のクラウドでは ADC が無いため、
+    環境変数 GOOGLE_CREDENTIALS_JSON にサービスアカウント JSON 文字列を設定可能にする。
+    設定されている場合、一時ファイルに書き出して GOOGLE_APPLICATION_CREDENTIALS をセットする。
+    """
+    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        return
+    credentials_json = os.environ.get("GOOGLE_CREDENTIALS_JSON") or os.environ.get("GCP_CREDENTIALS_JSON")
+    if not credentials_json:
+        return
+    try:
+        import tempfile
+        import json
+        # 有効な JSON か確認
+        json.loads(credentials_json)
+        fd, path = tempfile.mkstemp(suffix=".json", prefix="gcp_credentials_")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(credentials_json)
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
+            logger.info("GCP credentials set from GOOGLE_CREDENTIALS_JSON environment variable.")
+        except Exception:
+            os.close(fd)
+            if os.path.exists(path):
+                os.unlink(path)
+            raise
+    except json.JSONDecodeError as e:
+        logger.warning(f"GOOGLE_CREDENTIALS_JSON is not valid JSON: {e}")
 
 app = Flask(__name__)
 
@@ -149,15 +180,29 @@ def profile():
 def dashboard():
     # 最近の問題を取得
     recent_questions = Question.query.filter_by(is_public=True).order_by(Question.id.desc()).limit(3).all()
-    
-    # ユーザーの学習進捗
+
+    # ユーザーの学習ログ（進捗サマリー用）
     learning_logs = LearningLog.query.filter_by(user_id=current_user.id).all()
     total_score = sum(log.score or 0 for log in learning_logs)
-    
-    return render_template('dashboard.html', 
+
+    # 過去7日間の集計
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    logs_this_week = [log for log in learning_logs if log.created_at and log.created_at >= week_ago]
+    days_this_week = len(set(log.created_at.date() for log in logs_this_week)) if logs_this_week else 0
+    minutes_this_week = sum(log.time_spent or 0 for log in logs_this_week)
+    minutes_this_week = int(round(minutes_this_week))
+
+    # 連続学習日数
+    learning_streak = calculate_learning_streak(learning_logs)
+
+    return render_template('dashboard.html',
                         user=current_user,
                         recent_questions=recent_questions,
-                        total_score=total_score)
+                        total_score=total_score,
+                        days_this_week=days_this_week,
+                        minutes_this_week=minutes_this_week,
+                        learning_streak=learning_streak)
 
 # メイン学習系のルート
 @app.route('/questions')
@@ -182,6 +227,7 @@ def upload():
 
 # 音声認識（MP3/WAV対応・フォーマットに応じた最適設定）
 def transcribe_audio(audio_file_path):
+    _ensure_gcp_credentials()
     ext = os.path.splitext(audio_file_path)[1].lower()
     with io.open(audio_file_path, "rb") as f:
         content = f.read()
@@ -326,9 +372,15 @@ def upload_audio():
         }), 200
     except Exception as e:
         db.session.rollback()
-        logger.error(f'Failed to save file: {str(e)}')
-        return jsonify({'error': f'Failed to upload file: {str(e)}'}), 500
-
+        err_msg = str(e)
+        logger.error(f'Failed to save file: {err_msg}')
+        if "credentials" in err_msg.lower() or "GOOGLE_APPLICATION_CREDENTIALS" in err_msg:
+            error_user = (
+                "音声認識の認証が設定されていません。"
+                "Render の Environment で GOOGLE_CREDENTIALS_JSON にサービスアカウントの JSON を設定してください。"
+            )
+            return jsonify({'error': error_user}), 500
+        return jsonify({'error': f'Failed to upload file: {err_msg}'}), 500
 
 
 # リスニング問題を取得 (ランダム + 公開限定)
@@ -411,11 +463,8 @@ def submit_answer():
         )
         db.session.add(log)
         db.session.commit()
-        
-        # 問題の再生回数を更新
-        question.play_count = (question.play_count or 0) + 1
-        db.session.commit()
-        
+        # 再生回数は Question にカラムが無いため更新しない（必要なら別途集計）
+
     except Exception as e:
         db.session.rollback()
         logger.error(f'Failed to log learning progress: {str(e)}')

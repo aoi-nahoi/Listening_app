@@ -22,6 +22,31 @@ class Question(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())  # 作成日時
     difficulty_level = db.Column(db.Integer, nullable=True, default=1)  # 難易度レベル（1-5）
 
+    @property
+    def difficulty(self):
+        """難易度レベル(1-5)を easy/medium/hard に変換（API・テンプレート互換）"""
+        level = self.difficulty_level or 1
+        if level <= 2:
+            return 'easy'
+        if level <= 3:
+            return 'medium'
+        return 'hard'
+
+    @property
+    def category(self):
+        """カテゴリ（未実装の場合は None。API・テンプレート互換）"""
+        return None
+
+    @property
+    def play_count(self):
+        """再生回数（未実装の場合は 0）"""
+        return 0
+
+    @property
+    def avg_score(self):
+        """平均スコア（未実装の場合は 0）"""
+        return 0
+
     def __repr__(self):
         return f'<Question {self.id}: {self.question_text}>'
 
