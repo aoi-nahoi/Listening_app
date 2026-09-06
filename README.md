@@ -1,5 +1,8 @@
 # 英語リスニング学習アプリ
 
+## RenderデプロイURL
+https://listening-app-chyz.onrender.com
+
 ## 概要
 
 英語リスニング学習アプリは、音声ファイルをアップロードして自動的に穴埋め問題を生成し、ユーザーの英語リスニング能力向上を支援するWebアプリケーションです。Google Cloud Speech-to-Text APIを使用した音声認識機能と、機械学習による推奨システムを備えています。
@@ -456,8 +459,8 @@ tail -f database.log
 - [Discussions](https://github.com/your-repo/discussions)
 
 ### 連絡先
-- プロジェクトメンテナー: [your-email@example.com]
-- プロジェクトURL: [https://github.com/your-repo]
+- プロジェクトメンテナー: [stmelon2@gmail.com]
+- プロジェクトURL: [https://github.com/aoi-nahoi/Listening_app]
 
 ---
 
